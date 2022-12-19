@@ -13,11 +13,13 @@ This script needs your Ronin wallet private key in order to send the signed tran
 
 **PROVIDING YOUR PRIVATE KEY COULD ALLOW ALL YOUR ASSETS IN YOUR WALLET TO BE STOLEN. DO IT AT YOUR OWN RISK.**
 
+Run `pip3 install -r requirements.txt` to install the dependencies.
+
 Run `python3 config_priv_key.py`, follow the instructions and paste your private key as an hex string ('0x...'). Your private key will be stored using the [Python keyring library](https://pypi.org/project/keyring/).
 
-After the step above, run `python3 axs_auto_staker.py` to start the auto-staker.
+Run `python3 axs_auto_staker.py` to start the auto-staker.
 
-If you want to change the wallet, just repeat the steps above, providing the private key of the new wallet.
+If you want to change the wallet, just repeat the two last steps above, providing the private key of the new wallet.
 
 # Donations
 
