@@ -47,7 +47,7 @@ state = 0 # state variable: 0-> wait and restake
 while True:
     try:
         if state==0:
-            claim_interval = 24*3600
+            claim_interval = staking_manager_contract.functions.minClaimedBlocks().call()
             last_claimed_timestamp = staking_manager_contract.functions.userRewardInfo(axs_staking_pool_contract_addr, ronin_wallet).call()[2]
 
             next_claim_timestamp = claim_interval+last_claimed_timestamp
