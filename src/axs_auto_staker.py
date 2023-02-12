@@ -47,34 +47,33 @@ state = 0 # state variable: 0-> wait and restake
 while True:
     try:
         if state==0:
-            claim_block_interval = staking_manager_contract.functions.minClaimedBlocks().call()
-            last_claimed_block = staking_manager_contract.functions.userRewardInfo(axs_staking_pool_contract_addr, ronin_wallet).call()[2]
+            claim_interval = 24*3600
+            last_claimed_timestamp = staking_manager_contract.functions.userRewardInfo(axs_staking_pool_contract_addr, ronin_wallet).call()[2]
 
-            next_claim_block = claim_block_interval+last_claimed_block
-            
-            print_log('Next claim on block {}'.format(next_claim_block))
+            next_claim_timestamp = claim_interval+last_claimed_timestamp
 
-            last_block = ronin_chain.eth.get_block('latest')['number']
+            print_log('Next claim on timestamp {}'.format(next_claim_timestamp))
 
-            print_log('Actual block: {}'.format(last_block))
+            last_timestamp = ronin_chain.eth.get_block('latest')['timestamp']
 
-            while last_block<next_claim_block:
-                time_to_next_claim = (next_claim_block-last_block)*3 # 3 segundos por bloco
+            print_log('Actual timestamp: {}'.format(last_timestamp))
+
+            while last_timestamp<next_claim_timestamp:
+                time_to_next_claim = (next_claim_timestamp-last_timestamp)
                 sleep(time_to_next_claim)
-
-                last_block = ronin_chain.eth.get_block('latest')['number']
+                last_timestamp = ronin_chain.eth.get_block('latest')['timestamp']
 
             free_gas_req = requests.post(url = free_gas_rpc, headers = headers,
                                          json = {"id":2,"jsonrpc":"2.0",
                                                  "method":"eth_getFreeGasRequests",
                                                  "params":[ronin_wallet]}).json()['result']
-                                                 
+
             tx = axs_staking_pool_contract.functions.restakeRewards().buildTransaction({
                                     'from': ronin_wallet,
                                     'chainId': ronin_chain.eth.chain_id,
                                     'nonce': ronin_chain.eth.getTransactionCount(ronin_wallet),
                                     'gasPrice': Web3.toWei('0', 'gwei') if free_gas_req>0 else ronin_chain.eth.gasPrice})
-                                    
+
             # Gas estimate, as described in Eth.send_transaction(transaction):
             #
             # If the transaction specifies a data value but does not specify gas then the gas 
