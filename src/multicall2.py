@@ -1,6 +1,7 @@
 from web3 import Web3
 from eth_abi import encode_single, decode_single
 import utils
+import os
 
 #  Observações:
 #     _encode_transaction_data poderia ser obtido por call._encode_transaction_data(),
@@ -11,7 +12,7 @@ class Multicall2:
         self.eth = eth
         self.address = Web3.toChecksumAddress(address)
 
-        with open('abi/multicall2_abi.json') as f:
+        with open(os.path.join(os.path.dirname(__file__), 'abi', 'multicall2_abi.json')) as f:
             self.contract = eth.contract(address = self.address, abi = f.read())
     
     @staticmethod

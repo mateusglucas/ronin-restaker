@@ -19,7 +19,7 @@ if __name__ == '__main__':
     while is_first_iter or option not in ['y', 'n']:   
         if not is_first_iter:
             print('Incorect option. Try again!')
-        first_iter = False
+        is_first_iter = False
         option = input('Do you want to set your private key? [y/N] : ').lower()
         option = 'n' if option == '' else option
 

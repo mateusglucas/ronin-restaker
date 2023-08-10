@@ -1,10 +1,10 @@
-from math import exp
 from web3 import Web3
 from web3.middleware import geth_poa_middleware
 from time import sleep
 import utils
 from multicall2 import Multicall2
 import requests
+import os
 
 class Restaker:
     _headers ={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0',
@@ -38,9 +38,9 @@ class Restaker:
 
     def _create_contracts(self, staking_pool_addr):
         self.multicall2 = Multicall2(self.ronin_chain.eth, Restaker._multicall2_addr)
-        self.staking_manager = self._create_contract(Restaker._staking_manager_addr, 'abi/erc20_staking_manager_abi.json')
-        self.staking_pool = self._create_contract(staking_pool_addr, 'abi/erc20_staking_pool_abi.json')
-        self.wron_token = self._create_contract(Restaker._wron_token_addr, 'abi/wron_abi.json')
+        self.staking_manager = self._create_contract(Restaker._staking_manager_addr, 'erc20_staking_manager_abi.json')
+        self.staking_pool = self._create_contract(staking_pool_addr, 'erc20_staking_pool_abi.json')
+        self.wron_token = self._create_contract(Restaker._wron_token_addr, 'wron_abi.json')
 
         r = self.multicall2.aggregate([
                     self.staking_pool.functions.getStakingToken(),
@@ -48,12 +48,12 @@ class Restaker:
         staking_token_addr = Web3.toChecksumAddress(r[1][0])
         reward_token_addr = Web3.toChecksumAddress(r[1][1])
 
-        staking_token_abi = 'abi/katana_pair_abi.json' if self._is_staking_token_lp_token() else 'abi/wron_abi.json'
+        staking_token_abi = 'katana_pair_abi.json' if self._is_staking_token_lp_token() else 'wron_abi.json'
         self.staking_token = self._create_contract(staking_token_addr, staking_token_abi)
-        self.reward_token = self._create_contract(reward_token_addr, 'abi/wron_abi.json')
+        self.reward_token = self._create_contract(reward_token_addr, 'wron_abi.json')
 
         if self._is_staking_token_lp_token():
-            self.katana_router = self._create_contract(Restaker._katana_router_addr, 'abi/katana_router_abi.json')
+            self.katana_router = self._create_contract(Restaker._katana_router_addr, 'katana_router_abi.json')
 
             r = self.multicall2.aggregate([
                         self.staking_token.functions.token0(),
@@ -62,8 +62,8 @@ class Restaker:
             token1_addr = Web3.toChecksumAddress(r[1][1])
 
             # one of them is not wron, but we can use the same abi
-            self.token0 = self._create_contract(token0_addr, 'abi/wron_abi.json')
-            self.token1 = self._create_contract(token1_addr, 'abi/wron_abi.json')
+            self.token0 = self._create_contract(token0_addr, 'wron_abi.json')
+            self.token1 = self._create_contract(token1_addr, 'wron_abi.json')
             
             assert reward_token_addr == Restaker._wron_token_addr, 'Reward token is not WRON!'
             assert Restaker._wron_token_addr == token0_addr or Restaker._wron_token_addr == token1_addr, 'WRON is not in the token pair!'    
@@ -72,7 +72,7 @@ class Restaker:
         if abi_file is None:
             abi = utils.get_contract_abi(address)
         else:
-            with open(abi_file) as f:
+            with open(os.path.join(os.path.dirname(__file__), '..', 'abi', abi_file)) as f:
                 abi = f.read()
 
         return self.ronin_chain.eth.contract(address = address, abi = abi)
@@ -89,8 +89,8 @@ class Restaker:
         reward_token_addr = Web3.toChecksumAddress(r[1][1])
 
         # only to call decimals() and symbol(). WRON contract will be enough.
-        staking_token = self._create_contract(staking_token_addr, 'abi/wron_abi.json')
-        reward_token = self._create_contract(reward_token_addr, 'abi/wron_abi.json')
+        staking_token = self._create_contract(staking_token_addr, 'wron_abi.json')
+        reward_token = self._create_contract(reward_token_addr, 'wron_abi.json')
 
         r = self.multicall2.aggregate([staking_token.functions.symbol(),
                                        staking_token.functions.decimals(),

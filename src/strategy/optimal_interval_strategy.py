@@ -1,6 +1,7 @@
 from time import time, sleep
 from restaker import Restaker, KatanaRestaker, AXSRestaker
 from .strategy import Strategy
+from math import exp
 
 class OptimalIntervalStrategy(Strategy):
 
@@ -188,7 +189,11 @@ class OptimalIntervalStrategy(Strategy):
         reward_to_swap = round(usable_reward/2)
         self._print('Swapping {} {}...'.format(reward_to_swap, restaker.reward_token_symbol))
         swapped_amount, gas_used_swap = restaker.swap_ron_for_token(reward_to_swap)
-        self._print('Swapped {} {}.'.format(swapped_amount, restaker.reward_token_symbol))
+
+        token = restaker.token1 if restaker.token0.address == restaker.wron_token.address else restaker.token0
+        _, [token_decimals, token_symbol] = restaker.multicall2.aggregate([token.functions.decimals(),
+                                                                         token.functions.symbol()]).call()
+        self._print('Swapped {} {}.'.format(swapped_amount*10**(-token_decimals), token_symbol))
 
         self._print('Adding liquidity...')
         minted_amount, gas_used_add_liquidity = restaker.add_liquidity(swapped_amount)
