@@ -63,7 +63,7 @@ class OptimalIntervalStrategy(Strategy):
         gain = rewards_usd/staked_usd
         gain_rate = restaker._get_gain_rate(block_number, reward_token_price/staking_token_price, N=28800)
         estimated_elapsed_time = gain/gain_rate
-        optimal_interval = Restaker._estimate_optimal_restake_interval(fees_estimated_usd/staked_usd, gain_rate)
+        optimal_interval = OptimalIntervalStrategy._estimate_optimal_restake_interval(fees_estimated_usd/staked_usd, gain_rate)
         estimated_remaining_time = max(0, optimal_interval - estimated_elapsed_time)
 
         elapsed_time = time() - last_claimed_timestamp
@@ -101,6 +101,34 @@ class OptimalIntervalStrategy(Strategy):
                 time_to_sleep = 60*60*24
             self._print('Sleeping for {:.2f} days...'.format(time_to_sleep/60/60/24))
             sleep(time_to_sleep)
+
+    # fee_ratio: razão entre custo para restaking e montante inicial
+    # gain_rate: proporção de crescimento por intervalo de tempo
+    @staticmethod
+    def _estimate_optimal_restake_interval(fee_ratio, gain_rate):
+        u=1-fee_ratio
+
+        h = lambda x: exp(x/(x+u))-x-u
+        dh = lambda x: exp(x/(x+u))*(1/(x+u)-x/(x+u)**2)-1
+
+        tol=1e-6 # tolerante, in units of time
+
+        iter=0
+
+        x0 = 1
+        x1 = x0-h(x0)/dh(x0) 
+
+        # time interval is x/k, so the tolerance is compared
+        # against x/k
+        while abs(x1-x0)/gain_rate>tol and iter<100:
+            x0=x1
+            x1=x0-h(x0)/dh(x0)
+            iter+=1
+
+        if abs(x1-x0)/gain_rate>tol:
+            raise Exception('solution not found')
+        else:
+            return x1/gain_rate
 
     def _get_usable_ron_balance(self, pending_rewards_ron):
         restaker = self.restaker

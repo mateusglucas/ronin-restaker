@@ -164,34 +164,6 @@ class Restaker:
 
         return gain_rate
 
-    # fee_ratio: razão entre custo para restaking e montante inicial
-    # gain_rate: proporção de crescimento por intervalo de tempo
-    @staticmethod
-    def _estimate_optimal_restake_interval(fee_ratio, gain_rate):
-        u=1-fee_ratio
-
-        h = lambda x: exp(x/(x+u))-x-u
-        dh = lambda x: exp(x/(x+u))*(1/(x+u)-x/(x+u)**2)-1
-
-        tol=1e-6 # tolerante, in units of time
-
-        iter=0
-
-        x0 = 1
-        x1 = x0-h(x0)/dh(x0) 
-
-        # time interval is x/k, so the tolerance is compared
-        # against x/k
-        while abs(x1-x0)/gain_rate>tol and iter<100:
-            x0=x1
-            x1=x0-h(x0)/dh(x0)
-            iter+=1
-
-        if abs(x1-x0)/gain_rate>tol:
-            raise Exception('solution not found')
-        else:
-            return x1/gain_rate
-
     def _restake(self):
         raise NotImplementedError('restaking not implemented') 
     
