@@ -82,24 +82,27 @@ class OptimalIntervalStrategy(Strategy):
         self._print('Optimal restake interval: {:.2f} days'.format(optimal_interval/60/60/24))
         self._print('Estimated elapsed time: {:.2f} days'.format(estimated_elapsed_time/60/60/24))
 
-        if estimated_remaining_time <= 0 and can_claim_rewards == True:
-            self._print('Restaking...')
+        time_to_sleep = 0
+        if estimated_remaining_time <= 0:
+            if can_claim_rewards:
+                self._print('Restaking...')
 
-            gas_used = self._restake()
+                gas_used = self._restake()
 
-            self._print('Total gas used: {} ({} USD)'.format(gas_used,
-                                                             gas_used*gas_price_usd))
-            self._print('Gas estimation error: {:.2f}%'.format(100*(gas_used-gas_estimated)/gas_estimated))
-        else:
-            if elapsed_time < min_claimed_time_window:
+                self._print('Total gas used: {} ({} USD)'.format(gas_used,
+                                                                gas_used*gas_price_usd))
+                self._print('Gas estimation error: {:.2f}%'.format(100*(gas_used-gas_estimated)/gas_estimated))
+            elif elapsed_time < min_claimed_time_window:
                 self._print('Elapsed time smaller than min claimed time window ({} days)'.format(min_claimed_time_window/60/60/24))
-                time_to_sleep = min_claimed_time_window - elapsed_time
-            elif elapsed_time > 0:
-                self._print('Remaining time: {:.2f} days'.format(remaining_time_to_restake/60/60/24))
-                time_to_sleep = min(remaining_time_to_restake, 60*60*24)
+                time_to_sleep = remaining_time_to_restake
             else:
                 self._print('Can not restake yet and we do not know why!')
                 time_to_sleep = 60*60*24
+        else:
+            self._print('Estimated remaining time: {:.2f} days'.format(estimated_remaining_time/60/60/24))
+            time_to_sleep = min(estimated_remaining_time, 60*60*24)
+
+        if time_to_sleep != 0:
             self._print('Sleeping for {:.2f} days...'.format(time_to_sleep/60/60/24))
             sleep(time_to_sleep)
 
