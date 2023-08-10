@@ -3,3 +3,4 @@ web3==5.31.3
 requests==2.30.0
 pwinput==1.0.2
 eth-abi==2.2.0
+matplotlib==3.5.1
