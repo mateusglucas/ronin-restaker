@@ -15,7 +15,7 @@ The OptimalInterval strategy also allows you to specify a target minimum RON bal
 
 # How to use
 
-You can use the **restaker** and **strategy** modules to create your own application or use the provided **main.py** script.
+You can use the `restaker` and `strategy` modules to create your own application or use the provided `main.py` script.
 
 The provided script needs your Ronin wallet private key in order to send the signed transactions to restake your earnings. Your private key will be stored using the [Python keyring library](https://pypi.org/project/keyring/).
 
@@ -25,7 +25,7 @@ Run `pip install -r requirements.txt` to install the dependencies.
 
 Run `python main.py` and follow the instructions.
 
-If you want to change the wallet, just re-run main.py* and select the option to set your private key, overwriting the old one.
+If you want to change the wallet, just re-run `main.py` and select the option to set your private key, overwriting the old one.
 
 # Donations
 
