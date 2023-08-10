@@ -3,8 +3,32 @@ import keyring
 from restaker import KatanaRestaker, AXSRestaker
 from strategy import OptimalIntervalStrategy, ASAPStrategy
 from pwinput import pwinput
+import sys
 
+# args (to skip the inputs):
+#
+# - pool:
+#   1: WRON-USDC
+#   2: WRON-AXS
+#   3: WRON-WETH
+#   4: WRON-SLP
+#   5: AXS
+#
+# - strategy:
+#   1: ASAPStrategy
+#   2: OptimalIntervalStrategy
+#
+# - min_ron_balance (only when using OptimalIntervalStrategy)
+#
 if __name__ == '__main__':
+    arg_cnt = len(sys.argv)
+    if arg_cnt not in [1, 3, 4]:
+        raise Exception('number of arguments different from 0, 2 or 3')
+    if arg_cnt == 3 and int(sys.argv[2]) == 2: # OptimalIntervalStrategy without ron min balance
+        raise Exception('min ron balance not specified')
+    if arg_cnt == 4 and int(sys.argv[2]) == 1: # ASAPStrategy with more arguments than necessary
+        raise Exception('expected 2 arguments, received 3')
+    
     wron_usdc_lp_staking_pool_addr = Web3.toChecksumAddress('0xba1c32baff8f23252259a641fd5ca0bd211d4f65')
     wron_axs_lp_staking_pool_addr = Web3.toChecksumAddress('0x14327fa6a4027d8f08c0a1b7feddd178156e9527')
     wron_weth_lp_staking_pool_addr = Web3.toChecksumAddress('0xb9072cec557528f81dd25dc474d4d69564956e1e')
@@ -15,8 +39,13 @@ if __name__ == '__main__':
                     wron_weth_lp_staking_pool_addr,
                     wron_slp_lp_staking_pool_addr]
     
+    option = 'n' if arg_cnt>1 else None
+    desired_pool = int(sys.argv[1]) if arg_cnt>1 else None
+    desired_strat = int(sys.argv[2]) if arg_cnt>2 else None
+    desired_min_ron_balance = float(sys.argv[3]) if arg_cnt>3 else None
+
     is_first_iter = True 
-    while is_first_iter or option not in ['y', 'n']:   
+    while option not in ['y', 'n']:   
         if not is_first_iter:
             print('Incorect option. Try again!')
         is_first_iter = False
@@ -38,7 +67,7 @@ if __name__ == '__main__':
     print('')
 
     is_first_iter = True
-    while is_first_iter or desired_pool not in [1, 2, 3, 4, 5]:
+    while desired_pool not in [1, 2, 3, 4, 5]:
         if not is_first_iter:
             print('Incorrect option. Try again!')
         is_first_iter = False
@@ -59,7 +88,7 @@ if __name__ == '__main__':
     print('')
 
     is_first_iter = True
-    while is_first_iter or desired_strat not in [1, 2]:
+    while desired_strat not in [1, 2]:
         if not is_first_iter:
             print('Incorrect option. Try again!')
         is_first_iter = False
@@ -69,8 +98,9 @@ if __name__ == '__main__':
         strat = ASAPStrategy(restaker)
     elif desired_strat == 2:
         default_min_ron_balance = 1
-        desired_min_ron_balance = input('Desired min RON balance (leave blank to use default value {}): '.format(default_min_ron_balance))
-        desired_min_ron_balance = default_min_ron_balance if desired_min_ron_balance == '' else int(desired_min_ron_balance)
+        if desired_min_ron_balance is None:
+            desired_min_ron_balance = input('Desired min RON balance (leave blank to use default value {}): '.format(default_min_ron_balance))
+        desired_min_ron_balance = default_min_ron_balance if desired_min_ron_balance == '' else float(desired_min_ron_balance)
         strat = OptimalIntervalStrategy(restaker, desired_min_ron_balance)
     else:
         raise Exception('unexpected option value {}'.format(desired_pool))
