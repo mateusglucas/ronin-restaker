@@ -3,7 +3,7 @@ import utils
 from .restaker import Restaker
 
 class AXSRestaker(Restaker):
-    _axs_staking_pool_addr = Web3.toChecksumAddress('0x05b0bb3c1c320b280501b86706c3551995bc8571')
+    _axs_staking_pool_addr = Web3.to_checksum_address('0x05b0bb3c1c320b280501b86706c3551995bc8571')
 
     def __init__(self, priv_key):
         super().__init__(priv_key, AXSRestaker._axs_staking_pool_addr)

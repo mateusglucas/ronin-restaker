@@ -42,15 +42,13 @@ def get_function_abi(func):
 
 def get_input_signature(func):
     abi = get_function_abi(func)
-    input_types = [fin['type'] for fin in abi['inputs']]
-    input_signature = ','.join(input_types)
-    return '({})'.format(input_signature)
+    input_signature = [fin['type'] for fin in abi['inputs']]
+    return input_signature
 
 def get_output_signature(func):
     abi = get_function_abi(func)
-    output_types = [fout['type'] for fout in abi['outputs']]
-    output_signature = ','.join(output_types)
-    return '({})'.format(output_signature)
+    output_signature = [fout['type'] for fout in abi['outputs']]
+    return output_signature
 
 def get_selector(func):  
     # for bounded functions, the selector is already speficied
@@ -62,6 +60,8 @@ def get_selector(func):
     # the selector will be recovered only if the function isn't overloaded
     # in the contract.
     input_signature = get_input_signature(func)
+    input_signature = ','.join(input_signature)
+    input_signature = '({})'.format(input_signature)
     return Web3.keccak(text = func.fn_name + input_signature)[:4]
 
 def get_last_txns_from_explorer(func, N = 10, only_success = False):

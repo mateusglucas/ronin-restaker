@@ -5,6 +5,7 @@ import utils
 from multicall2 import Multicall2
 import requests
 import os
+from filelock import FileLock
 
 class Restaker:
     _headers ={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0',
@@ -12,10 +13,10 @@ class Restaker:
 
     _ronin_rpc = 'https://api.roninchain.com/rpc'
     _free_gas_rpc = 'https://proxy.roninchain.com/free-gas-rpc'
-    _multicall2_addr = Web3.toChecksumAddress('0xc76d0d0d3aa608190f78db02bf2f5aef374fc0b9')
-    _staking_manager_addr = Web3.toChecksumAddress('0x8bd81a19420bad681b7bfc20e703ebd8e253782d')
-    _wron_token_addr = Web3.toChecksumAddress('0xe514d9deb7966c8be0ca922de8a064264ea6bcd4')
-    _katana_router_addr = Web3.toChecksumAddress('0x7d0556d55ca1a92708681e2e231733ebd922597d')
+    _multicall2_addr = Web3.to_checksum_address('0xc76d0d0d3aa608190f78db02bf2f5aef374fc0b9')
+    _staking_manager_addr = Web3.to_checksum_address('0x8bd81a19420bad681b7bfc20e703ebd8e253782d')
+    _wron_token_addr = Web3.to_checksum_address('0xe514d9deb7966c8be0ca922de8a064264ea6bcd4')
+    _katana_router_addr = Web3.to_checksum_address('0x7d0556d55ca1a92708681e2e231733ebd922597d')
 
     def __init__(self, priv_key, staking_pool_addr):
         self._create_chains()
@@ -34,7 +35,7 @@ class Restaker:
         return chain
     
     def _create_wallet(self, priv_key):
-        self.wallet = self.ronin_chain.eth.account.privateKeyToAccount(priv_key)
+        self.wallet = self.ronin_chain.eth.account.from_key(priv_key)
 
     def _create_contracts(self, staking_pool_addr):
         self.multicall2 = Multicall2(self.ronin_chain.eth, Restaker._multicall2_addr)
@@ -45,8 +46,8 @@ class Restaker:
         r = self.multicall2.aggregate([
                     self.staking_pool.functions.getStakingToken(),
                     self.staking_pool.functions.getRewardToken()]).call()
-        staking_token_addr = Web3.toChecksumAddress(r[1][0])
-        reward_token_addr = Web3.toChecksumAddress(r[1][1])
+        staking_token_addr = Web3.to_checksum_address(r[1][0])
+        reward_token_addr = Web3.to_checksum_address(r[1][1])
 
         staking_token_abi = 'katana_pair_abi.json' if self._is_staking_token_lp_token() else 'wron_abi.json'
         self.staking_token = self._create_contract(staking_token_addr, staking_token_abi)
@@ -58,8 +59,8 @@ class Restaker:
             r = self.multicall2.aggregate([
                         self.staking_token.functions.token0(),
                         self.staking_token.functions.token1()]).call()
-            token0_addr = Web3.toChecksumAddress(r[1][0])
-            token1_addr = Web3.toChecksumAddress(r[1][1])
+            token0_addr = Web3.to_checksum_address(r[1][0])
+            token1_addr = Web3.to_checksum_address(r[1][1])
 
             # one of them is not wron, but we can use the same abi
             self.token0 = self._create_contract(token0_addr, 'wron_abi.json')
@@ -85,8 +86,8 @@ class Restaker:
         r = self.multicall2.aggregate([
                 self.staking_pool.functions.getStakingToken(),
                 self.staking_pool.functions.getRewardToken()]).call()
-        staking_token_addr = Web3.toChecksumAddress(r[1][0])
-        reward_token_addr = Web3.toChecksumAddress(r[1][1])
+        staking_token_addr = Web3.to_checksum_address(r[1][0])
+        reward_token_addr = Web3.to_checksum_address(r[1][1])
 
         # only to call decimals() and symbol(). WRON contract will be enough.
         staking_token = self._create_contract(staking_token_addr, 'wron_abi.json')
@@ -180,32 +181,33 @@ class Restaker:
         return logs[0]
     
     def _send_signed_transaction(self, call, params={}):
-        free_gas_req = self.free_gas_chain.provider.make_request('eth_getFreeGasRequests',[self.wallet.address])['result']
+        with FileLock(os.path.join(os.path.dirname(__file__), self.wallet.address + '.lock')):
+            free_gas_req = self.free_gas_chain.provider.make_request('eth_getFreeGasRequests',[self.wallet.address])['result']
 
-        params['gasPrice'] = Web3.toWei('0', 'gwei') if free_gas_req>0 else self.ronin_chain.eth.gas_price
-        params['nonce'] = self.ronin_chain.eth.getTransactionCount(self.wallet.address)
-        params['from'] = self.wallet.address
+            params['gasPrice'] = Web3.toWei('0', 'gwei') if free_gas_req>0 else self.ronin_chain.eth.gas_price
+            params['nonce'] = self.ronin_chain.eth.getTransactionCount(self.wallet.address)
+            params['from'] = self.wallet.address
 
-        txn = call.build_transaction(params)
-        
-        # Gas estimate, as described in Eth.send_transaction(transaction):
-        #
-        # If the transaction specifies a data value but does not specify gas then the gas 
-        # value will be populated using the estimate_gas() function with an additional buffer 
-        # of 100000 gas up to the gasLimit of the latest block. In the event that the value 
-        # returned by estimate_gas() method is greater than the gasLimit a ValueError will be 
-        # raised.
-        gas_limit = self.ronin_chain.eth.get_block('latest').gasLimit
+            txn = call.build_transaction(params)
+            
+            # Gas estimate, as described in Eth.send_transaction(transaction):
+            #
+            # If the transaction specifies a data value but does not specify gas then the gas 
+            # value will be populated using the estimate_gas() function with an additional buffer 
+            # of 100000 gas up to the gasLimit of the latest block. In the event that the value 
+            # returned by estimate_gas() method is greater than the gasLimit a ValueError will be 
+            # raised.
+            gas_limit = self.ronin_chain.eth.get_block('latest').gasLimit
 
-        if txn['gas'] > gas_limit:
-            raise Exception('Estimated gas greater than last block limit')
+            if txn['gas'] > gas_limit:
+                raise Exception('Estimated gas greater than last block limit')
 
-        txn['gas'] = min(txn['gas'] + 100000, gas_limit)
+            txn['gas'] = min(txn['gas'] + 100000, gas_limit)
 
-        signed_txn = self.wallet.sign_transaction(txn)
-        txn_hash = self.free_gas_chain.eth.send_raw_transaction(signed_txn.rawTransaction)
-        
-        return txn_hash
+            signed_txn = self.wallet.sign_transaction(txn)
+            txn_hash = self.free_gas_chain.eth.send_raw_transaction(signed_txn.rawTransaction)
+            
+            return txn_hash
 
     def _wait_txn_receipt(self, txn_hash):
         timeouts = [3]*5 + [10]*5 + [60]*5 + [5*60]
