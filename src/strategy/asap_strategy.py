@@ -29,22 +29,20 @@ class ASAPStrategy(Strategy):
         staked_usd = staking_amount*staking_token_price*10**(-restaker.staking_token_decimals)
         rewards_usd = pending_rewards*reward_token_price*10**(-restaker.reward_token_decimals)
 
+        pending_rewards_ron = pending_rewards * reward_token_price/wron_token_price
         gas_price_ron = restaker.ronin_chain.eth.gas_price
         gas_price_usd = gas_price_ron*wron_token_price*10**(-restaker.wron_token_decimals)
         gas_estimated = restaker._estimate_gas_to_restake() # TODO: printar
-        fees_estimated_ron = gas_estimated * gas_price_ron
+        gas_estimated_ron = gas_estimated * gas_price_ron
+        fees_estimated_ron = self._estimate_fees_ron(pending_rewards_ron, gas_estimated_ron)
 
-        ron_balance = restaker.ronin_chain.eth.get_balance(restaker.wallet.address)
-        if 2*fees_estimated_ron > ron_balance:
-            # Using:
-            # 2x margin for fee estimation vs. real fee
-            # 4x margin for variability in fee estimation in the next loop, to not fall here again
-            self._print('RON balance too low. Deposit at least {} RON to continue.'.format((4*fees_estimated_ron-ron_balance)*10**(-restaker.wron_token_decimals)))
+        if self._is_ron_balance_low(fees_estimated_ron):
             self._print('Sleeping for 10 minutes...')
             sleep(10*60) # sleep for 10 minutes
             return
 
         fees_estimated_usd = fees_estimated_ron*wron_token_price*10**(-restaker.wron_token_decimals)
+        gas_estimated_usd = gas_estimated_ron*wron_token_price*10**(-restaker.wron_token_decimals)
 
         # In situations where the user stopped to stake tokens for a while or when the user 
         # never claimed rewards at all, the true elapsed time (time() - last_claimed_timestamp) 
@@ -59,7 +57,7 @@ class ASAPStrategy(Strategy):
         remaining_time_to_restake = max(0, min_claimed_time_window - elapsed_time)
 
         self._print('Estimated APR: {:.2f}%'.format(100*gain_rate*60*60*24*365))
-        self._print('Estimated gas: {} ({} USD)'.format(gas_estimated, fees_estimated_usd))
+        self._print('Estimated gas: {} ({} USD)'.format(gas_estimated, gas_estimated_usd))
         self._print('Staked amount: {} {} ({} USD)'.format(staking_amount*10**(-restaker.staking_token_decimals),
                                                            restaker.staking_token_symbol,
                                                            staked_usd))
@@ -80,9 +78,6 @@ class ASAPStrategy(Strategy):
             if elapsed_time < min_claimed_time_window:
                 self._print('Elapsed time smaller than min claimed time window ({} days)'.format(min_claimed_time_window/60/60/24))
                 time_to_sleep = min_claimed_time_window - elapsed_time
-            elif elapsed_time > 0:
-                self._print('Remaining time: {:.2f} days'.format(remaining_time_to_restake/60/60/24))
-                time_to_sleep = min(remaining_time_to_restake, 60*60*24)
             else:
                 self._print('Can not restake yet and we do not know why!')
                 time_to_sleep = 60*60*24

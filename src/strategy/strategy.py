@@ -1,5 +1,6 @@
 from logger import Logger
-from restaker import Restaker
+from restaker import Restaker, KatanaRestaker, AXSRestaker
+from time import sleep
 
 class Strategy:
 
@@ -31,3 +32,27 @@ class Strategy:
 
     def _loop(self):
         raise NotImplemented('loop not implemented')
+
+    def _is_ron_balance_low(self, fees_estimated_ron):
+        restaker : Restaker = self.restaker
+        ron_balance = restaker.ronin_chain.eth.get_balance(restaker.wallet.address)
+        # Using 2x margin for fee estimation vs. real fee
+        if 2*fees_estimated_ron > ron_balance:
+            # Using 4x margin for variability in fee estimation in the next loop, to not fall here again
+            self._print('RON balance too low. Deposit at least {} RON to continue.'.format((4*fees_estimated_ron-ron_balance)*10**(-restaker.wron_token_decimals)))
+            return True
+        else:
+            return False
+        
+    def _estimate_fees_ron(self, pending_rewards_ron, gas_estimated_ron):
+        restaker : Restaker = self.restaker
+
+        if isinstance(restaker, KatanaRestaker):
+            swap_fees_ron = (pending_rewards_ron - gas_estimated_ron)/2 * 0.003 # 0.3 % swap fees
+        elif isinstance(restaker, AXSRestaker):
+            swap_fees_ron = 0 # no swap
+        else:
+            raise NotImplementedError('not implemented for {} class'.format(restaker.__class__.__name__))
+        fees_estimated_ron = gas_estimated_ron + swap_fees_ron
+
+        return fees_estimated_ron
