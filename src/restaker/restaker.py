@@ -172,7 +172,7 @@ class Restaker:
     def _get_log_from_receipt(txn_receipt, event):
         # TODO: o processReceipt retorna logs do mesmo evento, mas nem sempre originados do
         # mesmo endereço. Abrir pull request no GitHub
-        logs = event.processReceipt(txn_receipt)
+        logs = event.process_receipt(txn_receipt)
         logs = [log for log in logs if log.address == event.address]
         if len(logs) < 1:
             raise Exception('no log found')
@@ -185,7 +185,7 @@ class Restaker:
             free_gas_req = self.free_gas_chain.provider.make_request('eth_getFreeGasRequests',[self.wallet.address])['result']
 
             params['gasPrice'] = Web3.toWei('0', 'gwei') if free_gas_req>0 else self.ronin_chain.eth.gas_price
-            params['nonce'] = self.ronin_chain.eth.getTransactionCount(self.wallet.address)
+            params['nonce'] = self.ronin_chain.eth.get_transaction_count(self.wallet.address)
             params['from'] = self.wallet.address
 
             txn = call.build_transaction(params)
