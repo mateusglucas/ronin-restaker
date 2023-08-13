@@ -145,14 +145,12 @@ class Restaker:
     def _estimate_gas_to_restake(self):
         raise NotImplementedError('loop not implemented')    
         
-    def _get_gain_rate(self, block_number, reward_staking_price_ratio, N = 28800):
+    def _get_gain_rate(self, reward_staking_price_ratio, N = 28800):
         # block time is ~3 now, but it can change in the future.
         # estimate gain rate using the last 28800 blocks (~1 day now)
+        to_block = self.ronin_chain.eth.block_number
+        from_block = to_block - N
 
-        gain_rate = self._estimate_gain_rate(block_number - N, block_number, reward_staking_price_ratio)
-        return gain_rate
-    
-    def _estimate_gain_rate(self, from_block, to_block, reward_staking_price_ratio):
         t = self.ronin_chain.eth.get_block(to_block)['timestamp'] - self.ronin_chain.eth.get_block(from_block)['timestamp']
 
         r = self.multicall2.aggregate([

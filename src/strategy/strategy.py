@@ -1,13 +1,11 @@
 from logger import Logger
 from restaker import Restaker, KatanaRestaker, AXSRestaker
-from time import sleep
 
 class Strategy:
 
     def __init__(self, restaker : Restaker):
         self.restaker = restaker
         self.logger = Logger('log_{}.txt'.format(restaker.staking_token_symbol))
-        pass
 
     def _print(self, msg):
         self.logger.print(msg)
