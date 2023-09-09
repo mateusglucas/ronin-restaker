@@ -2,6 +2,7 @@ from time import time, sleep
 from restaker import Restaker, KatanaRestaker, AXSRestaker
 from .interval_strategy import IntervalStrategy
 from math import exp
+from numpy import finfo
 
 class OptimalIntervalStrategy(IntervalStrategy):
 
@@ -42,24 +43,34 @@ class OptimalIntervalStrategy(IntervalStrategy):
         h = lambda x: exp(x/(x+u))-x-u
         dh = lambda x: exp(x/(x+u))*(1/(x+u)-x/(x+u)**2)-1
 
-        tol=1e-6 # tolerante, in units of time
-
-        iter=0
+        tol=1e-6 # step relative tolerance
 
         x0 = 1
         x1 = x0-h(x0)/dh(x0) 
 
-        # time interval is x/k, so the tolerance is compared
-        # against x/k
-        while abs(x1-x0)/gain_rate>tol and iter<100:
+        iter=0
+        converged = False
+        while iter<100:
+            mean_abs = (abs(x0) + abs(x1))/2
+            if mean_abs==0: # if mean_abs==0, then x0==x1==0
+                converged = True
+                break
+
+            step = x1-x0
+            relative_step = abs(step)/mean_abs
+            if relative_step < tol:
+                converged = True
+                break
+
             x0=x1
             x1=x0-h(x0)/dh(x0)
-            iter+=1
 
-        if abs(x1-x0)/gain_rate>tol:
-            raise Exception('solution not found')
-        else:
-            return x1/gain_rate
+            iter+=1
+        
+        if not converged:
+            Warning('solution not satisfying tolerances: x0={}, x1={}, tol={}'.format(x0, x1, tol))
+
+        return x1/gain_rate
 
     def _get_usable_ron_balance(self, pending_rewards_ron):
         restaker = self.restaker

@@ -71,7 +71,10 @@ if __name__ == '__main__':
         if not is_first_iter:
             print('Incorrect option. Try again!')
         is_first_iter = False
-        desired_pool = int(input('Desired staking pool: '))
+        try:
+            desired_pool = int(input('Desired staking pool: '))
+        except ValueError:
+            pass
 
     if desired_pool in [1,2,3,4]:
         restaker = KatanaRestaker(keyring.get_password('ronin','priv_key'), katana_pools[desired_pool - 1])
@@ -92,16 +95,27 @@ if __name__ == '__main__':
         if not is_first_iter:
             print('Incorrect option. Try again!')
         is_first_iter = False
-        desired_strat = int(input('Desired strategy: '))
+        try:
+            desired_strat = int(input('Desired strategy: '))
+        except ValueError:
+            pass
 
     if desired_strat == 1:
         strat = ASAPStrategy(restaker)
     elif desired_strat == 2:
         default_min_ron_balance = 1
-        if desired_min_ron_balance is None:
-            desired_min_ron_balance = input('Desired min RON balance (leave blank to use default value {}): '.format(default_min_ron_balance))
-        desired_min_ron_balance = default_min_ron_balance if desired_min_ron_balance == '' else float(desired_min_ron_balance)
+        is_first_iter = True
+        while desired_min_ron_balance is None:
+            if not is_first_iter:
+                print('Incorrect option. Try again!')
+            is_first_iter = False
+            input_balance = input('Desired min RON balance (leave blank to use default value {}): '.format(default_min_ron_balance))
+            try:
+                desired_min_ron_balance = default_min_ron_balance if input_balance == '' else float(input_balance)
+            except ValueError:
+                pass
         strat = OptimalIntervalStrategy(restaker, desired_min_ron_balance)
+
     else:
         raise Exception('unexpected option value {}'.format(desired_pool))
      
