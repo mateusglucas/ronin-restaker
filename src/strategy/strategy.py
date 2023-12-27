@@ -71,12 +71,12 @@ class Strategy:
 
         self._print('Claiming rewards...')
         claimed_reward, gas_used_claim = restaker.claim_rewards()
-        self._print('Claimed {} {}.'.format(claimed_reward, restaker.reward_token_symbol))
+        self._print('Claimed {} {}.'.format(claimed_reward*10**(-restaker.reward_token_decimals), restaker.reward_token_symbol))
 
         usable_reward = self._get_usable_reward(claimed_reward, gas_used_claim)
 
         reward_to_swap = round(usable_reward/2)
-        self._print('Swapping {} {}...'.format(reward_to_swap, restaker.reward_token_symbol))
+        self._print('Swapping {} {}...'.format(reward_to_swap*10**(-restaker.reward_token_decimals), restaker.reward_token_symbol))
         swapped_amount, gas_used_swap = restaker.swap_ron_for_token(reward_to_swap)
 
         token = restaker.token1 if restaker.token0.address == restaker.wron_token.address else restaker.token0
@@ -86,11 +86,11 @@ class Strategy:
 
         self._print('Adding liquidity...')
         minted_amount, gas_used_add_liquidity = restaker.add_liquidity(swapped_amount)
-        self._print('Minted {} {}.'.format(minted_amount, restaker.staking_token_symbol))
+        self._print('Minted {} {}.'.format(minted_amount*10**(-restaker.staking_token_decimals), restaker.staking_token_symbol))
 
-        self._print('Staking {} {}...'.format(minted_amount, restaker.staking_token_symbol))
+        self._print('Staking {} {}...'.format(minted_amount*10**(-restaker.staking_token_decimals), restaker.staking_token_symbol))
         gas_used_stake = restaker.stake(minted_amount)
-        self._print('Staked {} {}.'.format(minted_amount, restaker.staking_token_symbol))
+        self._print('Staked {} {}.'.format(minted_amount*10**(-restaker.staking_token_decimals), restaker.staking_token_symbol))
 
         return gas_used_claim + gas_used_swap + gas_used_add_liquidity + gas_used_stake
 
@@ -104,6 +104,6 @@ class Strategy:
         
         self._print('Restaking rewards...')
         restaked_rewards, gas_used_restake = restaker.restake_rewards()
-        self._print('Restaked {} {}.'.format(restaked_rewards, restaker.staking_token_symbol))
+        self._print('Restaked {} {}.'.format(restaked_rewards*10**(-restaker.staking_token_decimals), restaker.staking_token_symbol))
 
         return gas_used_restake
