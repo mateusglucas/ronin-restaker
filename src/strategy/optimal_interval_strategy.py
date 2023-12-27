@@ -109,3 +109,5 @@ class OptimalIntervalStrategy(IntervalStrategy):
             self._print('Restaking aborted.')
             return
         self._print('Usable rewards: {} {}.'.format(usable_reward, restaker.reward_token_symbol))
+
+        return usable_reward
