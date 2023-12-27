@@ -1,8 +1,6 @@
-from time import time, sleep
 from restaker import Restaker, KatanaRestaker, AXSRestaker
 from .interval_strategy import IntervalStrategy
 from math import exp
-from numpy import finfo
 
 class OptimalIntervalStrategy(IntervalStrategy):
 
@@ -89,14 +87,8 @@ class OptimalIntervalStrategy(IntervalStrategy):
         else:
             raise NotImplementedError('method not implemented for {} class'.format(restaker.__class__.__name__))
 
-    def _katana_restake(self):
-        assert isinstance(self.restaker, KatanaRestaker), '{} class different from {}'.format(self.restaker.__class__.__name__,
-                                                                                              KatanaRestaker.__name__)
+    def _get_usable_reward(self, claimed_reward, gas_used_claim):
         restaker : KatanaRestaker = self.restaker
-
-        self._print('Claiming rewards...')
-        claimed_reward, gas_used_claim = restaker.claim_rewards()
-        self._print('Claimed {} {}.'.format(claimed_reward, restaker.reward_token_symbol))
 
         self._print('Estimating usable rewards...')
         gas_price_ron = restaker.ronin_chain.eth.gas_price
@@ -117,22 +109,3 @@ class OptimalIntervalStrategy(IntervalStrategy):
             self._print('Restaking aborted.')
             return
         self._print('Usable rewards: {} {}.'.format(usable_reward, restaker.reward_token_symbol))
-
-        reward_to_swap = round(usable_reward/2)
-        self._print('Swapping {} {}...'.format(reward_to_swap, restaker.reward_token_symbol))
-        swapped_amount, gas_used_swap = restaker.swap_ron_for_token(reward_to_swap)
-
-        token = restaker.token1 if restaker.token0.address == restaker.wron_token.address else restaker.token0
-        _, [token_decimals, token_symbol] = restaker.multicall2.aggregate([token.functions.decimals(),
-                                                                         token.functions.symbol()]).call()
-        self._print('Swapped {} {}.'.format(swapped_amount*10**(-token_decimals), token_symbol))
-
-        self._print('Adding liquidity...')
-        minted_amount, gas_used_add_liquidity = restaker.add_liquidity(swapped_amount)
-        self._print('Minted {} {}.'.format(minted_amount, restaker.staking_token_symbol))
-
-        self._print('Staking {} {}...'.format(minted_amount, restaker.staking_token_symbol))
-        gas_used_stake = restaker.stake(minted_amount)
-        self._print('Staked {} {}.'.format(minted_amount, restaker.staking_token_symbol))
-
-        return gas_used_claim + gas_used_swap + gas_used_add_liquidity + gas_used_stake

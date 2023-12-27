@@ -1,5 +1,4 @@
-from time import time, sleep
-from restaker import Restaker, KatanaRestaker, AXSRestaker
+from restaker import Restaker
 from .interval_strategy import IntervalStrategy
 
 class ASAPStrategy(IntervalStrategy):
