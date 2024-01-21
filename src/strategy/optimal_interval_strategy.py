@@ -90,6 +90,8 @@ class OptimalIntervalStrategy(IntervalStrategy):
     def _get_usable_reward(self, claimed_reward, gas_used_claim):
         restaker : KatanaRestaker = self.restaker
 
+        assert restaker.reward_token.address.lower() == Restaker._wron_token_addr.lower(), 'Reward token is not WRON!'
+
         self._print('Estimating usable rewards...')
         gas_price_ron = restaker.ronin_chain.eth.gas_price
         gas_estimated = restaker._estimate_gas_to_restake()
@@ -108,6 +110,6 @@ class OptimalIntervalStrategy(IntervalStrategy):
             self._print('All claimed rewards used to reach desired RON balance.')
             self._print('Restaking aborted.')
             return
-        self._print('Usable rewards: {} {}.'.format(usable_reward, restaker.reward_token_symbol))
+        self._print('Usable rewards: {} {}.'.format(usable_reward*10**(-restaker.wron_token_decimals), restaker.reward_token_symbol))
 
         return usable_reward

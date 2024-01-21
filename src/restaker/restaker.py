@@ -80,7 +80,7 @@ class Restaker:
 
     @classmethod
     def _is_staking_token_lp_token(cls):
-        raise NotImplementedError('loop not implemented')  
+        raise NotImplementedError('not implemented')  
 
     def _get_tokens_decimals_and_symbols(self):
         r = self.multicall2.aggregate([
@@ -204,7 +204,7 @@ class Restaker:
         return staking_token_price, reward_token_price, wron_token_price
 
     def _estimate_gas_to_restake(self):
-        raise NotImplementedError('loop not implemented')    
+        raise NotImplementedError('not implemented')    
         
     def _get_gain_rate(self, reward_staking_price_ratio, N = 28800):
         # block time is ~3 now, but it can change in the future.
@@ -281,4 +281,3 @@ class Restaker:
                 pass
 
         raise Exception('can not get transaction receipt')
-    
