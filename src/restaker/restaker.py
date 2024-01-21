@@ -104,41 +104,102 @@ class Restaker:
         self.reward_token_decimals = r[1][3]
         self.wron_token_decimals = r[1][4]
 
+    def _get_tokens_prices_usd_from_liquidity_pools(self):
+        wron_usdc_lp_staking_pool_addr = Web3.to_checksum_address('0xba1c32baff8f23252259a641fd5ca0bd211d4f65')
+        wron_axs_lp_staking_pool_addr = Web3.to_checksum_address('0x14327fa6a4027d8f08c0a1b7feddd178156e9527')
+        wron_weth_lp_staking_pool_addr = Web3.to_checksum_address('0xb9072cec557528f81dd25dc474d4d69564956e1e')
+        wron_slp_lp_staking_pool_addr = Web3.to_checksum_address('0x4e2d6466a53444248272b913c105e9281ec266d8')
+
+        staking_pools_addr = [wron_usdc_lp_staking_pool_addr, 
+                              wron_axs_lp_staking_pool_addr, 
+                              wron_weth_lp_staking_pool_addr,
+                              wron_slp_lp_staking_pool_addr]
+
+        staking_pools = [self._create_contract(addr, 'erc20_staking_pool_abi.json') for addr in staking_pools_addr]
+
+        r = self.multicall2.aggregate([staking_pool.functions.getStakingToken() for staking_pool in staking_pools]).call()
+        lp_tokens = [self._create_contract(Web3.to_checksum_address(addr), 'katana_pair_abi.json') for addr in r[1]]
+
+        r = self.multicall2.aggregate([lp_token.functions.getReserves() for lp_token in lp_tokens] + 
+                                      [lp_token.functions.token0() for lp_token in lp_tokens] + 
+                                      [lp_token.functions.token1() for lp_token in lp_tokens]).call()
+        
+        n_tokens = len(lp_tokens)
+        reserves = r[1][:n_tokens]
+        token0_addr = r[1][n_tokens:2*n_tokens]
+        token1_addr = r[1][2*n_tokens:]
+
+        token0 = [self._create_contract(Web3.to_checksum_address(addr), 'wron_abi.json') for addr in token0_addr] 
+        token1 = [self._create_contract(Web3.to_checksum_address(addr), 'wron_abi.json') for addr in token1_addr]
+
+        r = self.multicall2.aggregate([token.functions.symbol() for token in token0 + token1] + 
+                                      [token.functions.decimals() for token in token0 + token1]).call()
+        token0_symbols = r[1][:n_tokens]
+        token1_symbols = r[1][n_tokens:2*n_tokens]
+        token0_decimals = r[1][2*n_tokens:3*n_tokens]
+        token1_decimals = r[1][3*n_tokens:]
+
+        reserves_dict = {}
+
+        for token0_sym, token1_sym, token0_dec, token1_dec, [token0_reserve, token1_reserve, _] in zip(token0_symbols, token1_symbols, token0_decimals, token1_decimals, reserves):
+            if token0_sym in reserves_dict and token1_sym in reserves_dict:
+                raise Exception("Both tokens are already in reserves dict.")
+            
+            if token0_sym in reserves_dict:
+                reserves_dict[token1_sym] = token1_reserve * 10**(-token1_dec) * reserves_dict[token0_sym]/(token0_reserve*10**(-token0_dec))
+            elif token1_sym in reserves_dict:
+                reserves_dict[token0_sym] = token0_reserve * 10**(-token0_dec) * reserves_dict[token1_sym]/(token1_reserve*10**(-token1_dec))
+            else:
+                reserves_dict[token0_sym] = token0_reserve * 10**(-token0_dec)
+                reserves_dict[token1_sym] = token1_reserve * 10**(-token1_dec)
+
+        prices_dict = {}
+        for key in reserves_dict:
+            prices_dict[key] = reserves_dict['USDC']/reserves_dict[key]
+
+        return prices_dict
+
     def _get_tokens_prices_usd(self):
-        addresses = [self.reward_token.address, self.wron_token.address]
-
-        if self._is_staking_token_lp_token():
-            addresses.append(self.token0.address)
-            addresses.append(self.token1.address)
-        else:
-            addresses.append(self.staking_token.address)
-
-        params = {'contract_addresses': ','.join(addresses),
-        'vs_currencies': 'usd'}
-
-        r = requests.get('https://api.coingecko.com/api/v3/simple/token_price/{}'.format('ronin'), params=params)
+        r = requests.get('https://exchange-rate.skymavis.com/')
         r.raise_for_status()
-
-        wron_token_price = r.json()[self.wron_token.address.lower()]['usd']
-        reward_token_price = r.json()[self.reward_token.address.lower()]['usd']
-
+        r = r.json()
+    
         if self._is_staking_token_lp_token():
-            r_aux = self.multicall2.aggregate([
-                self.staking_token.functions.totalSupply(),
-                self.staking_token.functions.getReserves(),
-                self.token0.functions.decimals(),
-                self.token1.functions.decimals(),]).call()
-            staking_token_total_supply = r_aux[1][0]
-            reserves0, reserves1 = r_aux[1][1][:2]
-            token0_decimals = r_aux[1][2]
-            token1_decimals = r_aux[1][3]
+            r_aux = self.multicall2.aggregate([self.reward_token.functions.symbol(),
+                                           self.wron_token.functions.symbol(),
+                                           self.token0.functions.symbol(),
+                                           self.token1.functions.symbol(),
+                                           self.staking_token.functions.totalSupply(),
+                                           self.staking_token.functions.getReserves(),
+                                           self.token0.functions.decimals(),
+                                           self.token1.functions.decimals()]).call()
+            
+            reward_token_symbol = r_aux[1][0]
+            wron_token_symbol = r_aux[1][1]
+            token0_symbol = r_aux[1][2]
+            token1_symbol = r_aux[1][3]
+            staking_token_total_supply = r_aux[1][4]
+            reserves0, reserves1 = r_aux[1][5][:2]
+            token0_decimals = r_aux[1][6]
+            token1_decimals = r_aux[1][7]
 
-            token0_price = r.json()[self.token0.address.lower()]['usd'] 
-            token1_price = r.json()[self.token1.address.lower()]['usd']
+            token0_price = r[token0_symbol.lower()]['usd'] 
+            token1_price = r[token1_symbol.lower()]['usd']
             staking_token_price = (reserves0*token0_price*10**(-token0_decimals)
                                     +reserves1*token1_price*10**(-token1_decimals))/(staking_token_total_supply*10**(-self.staking_token_decimals))
         else:
-            staking_token_price = r.json()[self.staking_token.address.lower()]['usd']
+            r_aux = self.multicall2.aggregate([self.reward_token.functions.symbol(),
+                                           self.wron_token.functions.symbol(),
+                                           self.staking_token.functions.symbol()]).call()
+            
+            reward_token_symbol = r_aux[1][0]
+            wron_token_symbol = r_aux[1][1]
+            staking_token_symbol = r_aux[1][2]
+
+            staking_token_price = r[staking_token_symbol.lower()]['usd']
+
+        wron_token_price = r[wron_token_symbol.lower()]['usd']
+        reward_token_price = r[reward_token_symbol.lower()]['usd']
 
         return staking_token_price, reward_token_price, wron_token_price
 
