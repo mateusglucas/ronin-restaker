@@ -11,7 +11,7 @@ Two staking strategies are provided:
 * ASAP: restake the rewards *as soon as possible* (every 24 hours).
 * OptimalInterval: estimate restaking fees and calculate the optimal interval to maximize the compound interest.
 
-The OptimalInterval strategy also allows you to specify a target minimum RON balance to avoid zeroing the RON balance in the long run due to paying fees. When using Katana staking pools with a RON balance lower than the target balance, this strategy will use the rewards in the long run to correct the RON balance so that it follows closely the specified targed.
+The OptimalInterval strategy also allows you to specify a target minimum RON balance to avoid zeroing the RON balance in the long run due to paying fees. When using Katana staking pools with a RON balance lower than the target balance, this strategy will use the rewards in the long run to correct the RON balance so that it follows closely the specified target.
 
 # How to use
 
