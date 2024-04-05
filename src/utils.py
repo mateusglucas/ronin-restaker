@@ -87,11 +87,11 @@ def get_last_txns_from_explorer(func, N = 10, only_success = False):
         if(len(req) != size):
             raise Exception('Results with less items than expected: got {}, expected {}'.format(len(req), size))
         
-        temp = [r for r in req if r['input'][:10] == get_selector(func).hex() and r['hash'] not in hashes]
+        temp = [r for r in req if r['input'][:10] == get_selector(func).hex() and r['transactionHash'] not in hashes]
         if only_success == True:
             temp = [t for t in temp if t['status']==1]
 
-        hashes.update([t['hash'] for t in temp])
+        hashes.update([t['transactionHash'] for t in temp])
         start_idx += size
         info += temp
 
