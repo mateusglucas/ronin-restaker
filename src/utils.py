@@ -99,7 +99,7 @@ def get_last_txns_from_explorer(func, N = 10, only_success = False):
 
 def get_gas_used_from_explorer(func, N=10):
     txns = get_last_txns_from_explorer(func = func, N = N, only_success = True)
-    return [int(tx['gas_used']) for tx in txns]
+    return [int(tx['gasUsed']) for tx in txns]
 
 def estimate_gas_used(func, N=10):
     values = get_gas_used_from_explorer(func = func, N = N)
