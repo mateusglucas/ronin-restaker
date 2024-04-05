@@ -73,13 +73,17 @@ def get_last_txns_from_explorer(func, N = 10, only_success = False):
     info = []
     hashes = set()
 
-    url = 'https://explorerv3-api.roninchain.com/txs/{}'.format(func.address.lower())
+    url = 'https://skynet-api.roninchain.com/ronin/txs/search'
 
     while len(info)<N:
-        req = requests.get(url, headers = headers, params={'from': start_idx, 'size': size})
+        data = {'address': {'relateTo': func.address.lower(),},
+                'paging': {'offset': start_idx, 'limit': size,},
+        }
+
+        req = requests.post(url, headers = headers, json=data)
         req.raise_for_status()
 
-        req = req.json()['results']
+        req = req.json()['result']['items']
         if(len(req) != size):
             raise Exception('Results with less items than expected: got {}, expected {}'.format(len(req), size))
         
