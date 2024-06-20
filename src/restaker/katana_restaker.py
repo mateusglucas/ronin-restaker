@@ -13,8 +13,8 @@ class KatanaRestaker(Restaker):
     
     def _estimate_gas_to_restake(self, N=10):
         gas_estimated = utils.estimate_gas_used(self.staking_pool.functions.claimPendingRewards, N = N)
-        gas_estimated += utils.estimate_gas_used(self.katana_router.functions.swapExactRONForTokens, N = N)  
-        gas_estimated += utils.estimate_gas_used(self.katana_router.functions.addLiquidityRON, N = N)
+        gas_estimated += utils.estimate_gas_used(self.permissioned_router.functions.swapExactRONForTokens, N = N)  
+        gas_estimated += utils.estimate_gas_used(self.permissioned_router.functions.addLiquidityRON, N = N)
         gas_estimated += utils.estimate_gas_used(self.staking_pool.functions.stake, N = N)
         return gas_estimated
 
@@ -47,7 +47,7 @@ class KatanaRestaker(Restaker):
 
         token_amount = round(ron_to_swap/token_price)*(1-0.003) # 0.3% swap fee
 
-        swap_call = self.katana_router.functions.swapExactRONForTokens(round((1-slippage)*token_amount), 
+        swap_call = self.permissioned_router.functions.swapExactRONForTokens(round((1-slippage)*token_amount), 
                                                                 [self.reward_token.address, token.address], 
                                                                 self.wallet.address, 
                                                                 round(time()+deadline))
@@ -78,7 +78,7 @@ class KatanaRestaker(Restaker):
         deadline = 30*60 # 30 minutes
         slippage = 0.01
 
-        liquidity_call = self.katana_router.functions.addLiquidityRON(token.address,
+        liquidity_call = self.permissioned_router.functions.addLiquidityRON(token.address,
                                                                     token_amount,
                                                                     token_amount,
                                                                     round(ron_amount*(1-slippage)),

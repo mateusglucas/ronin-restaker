@@ -16,7 +16,7 @@ class Restaker:
     _multicall2_addr = Web3.to_checksum_address('0xc76d0d0d3aa608190f78db02bf2f5aef374fc0b9')
     _staking_manager_addr = Web3.to_checksum_address('0x8bd81a19420bad681b7bfc20e703ebd8e253782d')
     _wron_token_addr = Web3.to_checksum_address('0xe514d9deb7966c8be0ca922de8a064264ea6bcd4')
-    _katana_router_addr = Web3.to_checksum_address('0x7d0556d55ca1a92708681e2e231733ebd922597d')
+    _permissioned_router_addr = Web3.to_checksum_address('0xc05afc8c9353c1dd5f872eccfacd60fd5a2a9ac7')
 
     def __init__(self, priv_key, staking_pool_addr):
         self._create_chains()
@@ -54,7 +54,7 @@ class Restaker:
         self.reward_token = self._create_contract(reward_token_addr, 'wron_abi.json')
 
         if self._is_staking_token_lp_token():
-            self.katana_router = self._create_contract(Restaker._katana_router_addr, 'katana_router_abi.json')
+            self.permissioned_router = self._create_contract(Restaker._permissioned_router_addr, 'permissioned_router_abi.json')
 
             r = self.multicall2.aggregate([
                         self.staking_token.functions.token0(),
