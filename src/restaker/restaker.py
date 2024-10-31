@@ -12,7 +12,6 @@ class Restaker:
               'content-type': 'application/json'}
 
     _ronin_rpc = 'https://api.roninchain.com/rpc'
-    _free_gas_rpc = 'https://proxy.roninchain.com/free-gas-rpc'
     _multicall2_addr = Web3.to_checksum_address('0xc76d0d0d3aa608190f78db02bf2f5aef374fc0b9')
     _staking_manager_addr = Web3.to_checksum_address('0x8bd81a19420bad681b7bfc20e703ebd8e253782d')
     _wron_token_addr = Web3.to_checksum_address('0xe514d9deb7966c8be0ca922de8a064264ea6bcd4')
@@ -26,7 +25,6 @@ class Restaker:
     
     def _create_chains(self):
         self.ronin_chain = Restaker._create_chain(Restaker._ronin_rpc)
-        self.free_gas_chain = Restaker._create_chain(Restaker._free_gas_rpc)
 
     @staticmethod
     def _create_chain(rpc):
@@ -262,7 +260,7 @@ class Restaker:
             txn['gas'] = min(txn['gas'] + 100000, gas_limit)
 
             signed_txn = self.wallet.sign_transaction(txn)
-            txn_hash = self.free_gas_chain.eth.send_raw_transaction(signed_txn.rawTransaction)
+            txn_hash = self.ronin_chain.eth.send_raw_transaction(signed_txn.rawTransaction)
             
             return txn_hash
 
@@ -274,7 +272,7 @@ class Restaker:
             if time_idx < len(timeouts)-1:
                 time_idx += 1
             try:
-                return self.free_gas_chain.eth.get_transaction_receipt(txn_hash)
+                return self.ronin_chain.eth.get_transaction_receipt(txn_hash)
             except:
                 pass
 
