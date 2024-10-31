@@ -241,9 +241,7 @@ class Restaker:
     
     def _send_signed_transaction(self, call, params={}):
         with FileLock(os.path.join(os.path.dirname(__file__), self.wallet.address + '.lock')):
-            free_gas_req = self.free_gas_chain.provider.make_request('eth_getFreeGasRequests',[self.wallet.address])['result']
-
-            params['gasPrice'] = Web3.toWei('0', 'gwei') if free_gas_req>0 else self.ronin_chain.eth.gas_price
+            params['gasPrice'] = self.ronin_chain.eth.gas_price
             params['nonce'] = self.ronin_chain.eth.get_transaction_count(self.wallet.address, block_identifier = 'pending')
             params['from'] = self.wallet.address
 
